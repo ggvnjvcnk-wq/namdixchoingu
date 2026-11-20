@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dự Đoán Cầu Tài Xỉu</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --gold:#f0b90b;
+    --red:#ff5c5c;
+    --blue:#4da3ff;
+    --card:#141b25;
+    --line:#243040;
+  }
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    min-height:100vh;
+    background:radial-gradient(circle at 50% -10%, #1e2a3a 0%, #0a0e14 65%);
+    color:#e6edf3;
+    display:flex;align-items:center;justify-content:center;
+    padding:16px;
+  }
+  .hidden{display:none !important}
+
+  .card{
+    width:100%;max-width:460px;
+    background:linear-gradient(180deg,#151d28 0%,#101720 100%);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:22px;
+    box-shadow:0 20px 50px rgba(0,0,0,.55);
+  }
+
+  /* ---------- LOGIN ---------- */
+  .login-card{text-align:center}
+  .logo{font-size:44px;margin-bottom:6px}
+  .login-card h1{font-size:20px;letter-spacing:.5px;margin-bottom:6px}
+  .sub{font-size:13px;color:#8b98a9;margin-bottom:18px}
+  input[type=password]{
+    width:100%;padding:13px 14px;border-radius:11px;
+    border:1px solid var(--line);background:#0c121a;color:#fff;
+    font-size:15px;outline:none;margin-bottom:12px;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  input[type=password]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(240,185,11,.15)}
+  .primary{
+    width:100%;padding:13px;border:0;border-radius:11px;cursor:pointer;
+    background:linear-gradient(135deg,#f0b90b,#d99e00);color:#1a1200;
+    font-weight:800;font-size:15px;letter-spacing:.3px;
+    transition:transform .12s, filter .2s;
+  }
+  .primary:hover{filter:brightness(1.08)}
+  .primary:active{transform:scale(.98)}
+  .err{color:#ff6b6b;font-size:13px;margin-top:12px;min-height:18px}
+
+  @keyframes shake{
+    10%,90%{transform:translateX(-3px)}
+    20%,80%{transform:translateX(5px)}
+    30%,50%,70%{transform:translateX(-7px)}
+    40%,60%{transform:translateX(7px)}
+  }
+  .shake{animation:shake .5s}
+
+  /* ---------- APP ---------- */
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  header h1{font-size:16px;letter-spacing:.4px}
+  .ghost{
+    background:transparent;border:1px solid var(--line);color:#9aa8b8;
+    padding:7px 11px;border-radius:9px;font-size:12px;cursor:pointer;
+    transition:.2s;
+  }
+  .ghost:hover{border-color:#3a4b62;color:#e6edf3}
+  .ghost.wide{width:100%;margin-top:10px;padding:10px}
+  .ghost.small{padding:4px 9px;font-size:11px}
+
+  .prediction{
+    background:radial-gradient(circle at 50% 0%, rgba(240,185,11,.09), transparent 70%);
+    border:1px solid var(--line);border-radius:15px;
+    padding:18px;text-align:center;margin-bottom:14px;
+  }
+  .pred-label{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:#7c8a9c}
+  .pred-value{
+    font-size:42px;font-weight:900;letter-spacing:2px;
+    margin:6px 0 4px;color:#4a5768;transition:color .25s;
+  }
+  .pred-value.tai{color:var(--red);text-shadow:0 0 26px rgba(255,92,92,.45)}
+  .pred-value.xiu{color:var(--blue);text-shadow:0 0 26px rgba(77,163,255,.45)}
+  .pred-reason{font-size:12px;color:#8b98a9;line-height:1.5}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+  .stat{
+    background:#0d141d;border:1px solid var(--line);border-radius:11px;
+    padding:9px 4px;text-align:center;
+  }
+  .stat span{display:block;font-size:15px;font-weight:800;color:#e6edf3}
+  .stat small{font-size:10px;color:#7c8a9c;letter-spacing:.5px}
+
+  .history-title{
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:12px;color:#8b98a9;margin-bottom:8px;
+  }
+  .history{
+    display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;
+    min-height:42px;align-items:center;scrollbar-width:thin;
+  }
+  .history::-webkit-scrollbar{height:5px}
+  .history::-webkit-scrollbar-thumb{background:#2b3a4d;border-radius:4px}
+  .chip{
+    width:30px;height:30px;flex:0 0 auto;border-radius:9px;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:13px;
+  }
+  .chip.t{background:rgba(255,92,92,.16);color:#ff8080;border:1px solid rgba(255,92,92,.35)}
+  .chip.x{background:rgba(77,163,255,.16);color:#7ab8ff;border:1px solid rgba(77,163,255,.35)}
+  .empty{font-size:12px;color:#57657a;font-style:italic}
+
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .btn{
+    padding:16px 8px;border:0;border-radius:13px;cursor:pointer;
+    font-weight:900;font-size:17px;letter-spacing:1.5px;color:#fff;
+    transition:transform .12s, filter .2s;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn.tai{background:linear-gradient(135deg,#e84141,#b32424);box-shadow:0 8px 22px rgba(232,65,65,.28)}
+  .btn.xiu{background:linear-gradient(135deg,#3b8fe8,#1c5fa8);box-shadow:0 8px 22px rgba(59,143,232,.28)}
+  .btn:hover{filter:brightness(1.1)}
+
+  .disclaimer{
+    font-size:10.5px;color:#5e6c80;line-height:1.55;
+    margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= ĐĂNG NHẬP ================= -->
+<div id="login">
+  <div class="card login-card">
+    <div class="logo">🎲</div>
+    <h1>DỰ ĐOÁN CẦU TÀI XỈU</h1>
+    <p class="sub">Vui lòng nhập mật khẩu để truy cập</p>
+    <input id="pass" type="password" placeholder="Mật khẩu..." autocomplete="current-password">
+    <button class="primary" id="loginBtn">ĐĂNG NHẬP</button>
+    <p class="err" id="err"></p>
+  </div>
+</div>
+
+<!-- ================= ỨNG DỤNG ================= -->
+<div id="app" class="hidden">
+  <div class="card">
+    <header>
+      <h1>🎲 DỰ ĐOÁN CẦU TÀI XỈU</h1>
+      <button class="ghost" id="logoutBtn">Thoát</button>
+    </header>
+
+    <div class="prediction">
+      <div class="pred-label">Dự đoán ván tiếp theo</div>
+      <div class="pred-value" id="predValue">—</div>
+      <div class="pred-reason" id="predReason">Nhập kết quả các ván để bắt đầu phân tích</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span id="stTotal">0</span><small>TỔNG</small></div>
+      <div class="stat"><span id="stTai">0</span><small>TÀI</small></div>
+      <div class="stat"><span id="stXiu">0</span><small>XỈU</small></div>
+      <div class="stat"><span id="stStreak">—</span><small>CHUỖI</small></div>
+    </div>
+
+    <div class="history-title">
+      <span>Lịch sử gần đây</span>
+      <button class="ghost small" id="clearBtn">Xóa hết</button>
+    </div>
+    <div class="history" id="history"></div>
+
+    <div class="actions">
+      <button class="btn tai" data-r="T">TÀI</button>
+      <button class="btn xiu" data-r="X">XỈU</button>
+    </div>
+    <button class="ghost wide" id="undoBtn">↩ Hoàn tác ván cuối</button>
+
+    <p class="disclaimer">
+      ⚠️ Công cụ chỉ mang tính <b>tham khảo / giải trí</b>. Kết quả xúc xắc là ngẫu nhiên —
+      không có quy luật nào đảm bảo dự đoán chính xác. Không sử dụng cho mục đích cá cược.
+    </p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ====== 1. CẤU HÌNH MẬT KHẨU (đổi tại đây) ====== */
+  const PASSWORD = "123456";
+
+  /* Lưu ý: đây là kiểm tra phía client — chỉ chặn người dùng phổ thông.
+     Nếu cần bảo mật thật, hãy xác thực ở server. */
+
+  const KEY = "tx_history_v1";
+  const $ = (id) => document.getElementById(id);
+
+  const loginEl = $("login");
+  const appEl   = $("app");
+  const passEl  = $("pass");
+  const errEl   = $("err");
+
+  /* ====== 2. DỮ LIỆU ====== */
+  let history = [];
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || "[]");
+    if (Array.isArray(raw)) history = raw.filter(r => r === "T" || r === "X");
+  } catch (e) { history = []; }
+
+  const save = () => localStorage.setItem(KEY, JSON.stringify(history));
+
+  /* ====== 3. ĐĂNG NHẬP ====== */
+  function unlock() {
+    loginEl.classList.add("hidden");
+    appEl.classList.remove("hidden");
+    render();
+  }
+
+  if (sessionStorage.getItem("tx_ok") === "1") unlock();
+
+  function tryLogin() {
+    if (passEl.value === PASSWORD) {
+      sessionStorage.setItem("tx_ok", "1");
+      errEl.textContent = "";
+      passEl.value = "";
+      unlock();
+    } else {
+      errEl.textContent = "❌ Mật khẩu không đúng!";
+      passEl.value = "";
+      passEl.focus();
+      const card = loginEl.querySelector(".card");
+      card.classList.remove("shake");
+      void card.offsetWidth; // reset animation
+      card.classList.add("shake");
+    }
+  }
+
+  $("loginBtn").addEventListener("click", tryLogin);
+  passEl.addEventListener("keydown", (e) => { if (e.key === "Enter") tryLogin(); });
+
+  $("logoutBtn").addEventListener("click", () => {
+    sessionStorage.removeItem("tx_ok");
+    appEl.classList.add("hidden");
+    loginEl.classList.remove("hidden");
+    passEl.value = "";
+    errEl.textContent = "";
+    passEl.focus();
+  });
+
+  /* ====== 4. THUẬT TOÁN PHÂN TÍCH CẦU ====== */
+  function analyze(h) {
+    const n = h.length;
+    if (n < 3) {
+      return { pred: null, conf: 0, desc: "Cần ít nhất 3 ván để phân tích" };
+    }
+
+    // Tìm chu kỳ ngắn nhất (1 → 4 nhịp) khớp ở đuôi dãy
+    let period = 0, reps = 0;
+    for (let p = 1; p <= 4; p++) {
+      if (n < p + 2) continue;
+      let r = 0, i = n - 1;
+      while (i - p >= 0 && h[i] === h[i - p]) { r++; i--; }
+      if (r >= Math.max(p, 2)) { period = p; reps = r; break; }
+    }
+
+    if (period) {
+      const names = {
+        1: "Cầu bệt (chuỗi)",
+        2: "Cầu 1-1 (so le)",
+        3: "Cầu 3 nhịp",
+        4: "Cầu 4 nhịp"
+      };
+      return {
+        pred: h[n - period],
+        conf: Math.min(92, 52 + reps * 7),
+        desc: names[period] + " · khớp " + reps + " nhịp"
+      };
+    }
+
+    // Không đủ tín hiệu → bẻ cầu (đoán ngược ván cuối)
+    return {
+      pred: h[n - 1] === "T" ? "X" : "T",
+      conf: 50,
+      desc: "Chưa phát hiện quy luật rõ — đoán ngược ván cuối"
+    };
+  }
+
+  /* ====== 5. HIỂN THỊ ====== */
+  function render() {
+    /* Lịch sử */
+    const histEl = $("history");
+    histEl.innerHTML = "";
+    const shown = history.slice(-40);
+    if (!shown.length) {
+      histEl.innerHTML = '<span class="empty">Chưa có dữ liệu</span>';
+    } else {
+      shown.forEach((r) => {
+        const d = document.createElement("span");
+        d.className = "chip " + (r === "T" ? "t" : "x");
+        d.textContent = r;
+        histEl.appendChild(d);
+      });
+    }
+    histEl.scrollLeft = histEl.scrollWidth;
+
+    /* Thống kê */
+    const total = history.length;
+    const tai = history.filter((r) => r === "T").length;
+    $("stTotal").textContent = total;
+    $("stTai").textContent = tai;
+    $("stXiu").textContent = total - tai;
+
+    let streakTxt = "—";
+    if (total) {
+      let s = 1;
+      for (let i = total - 2; i >= 0 && history[i] === history[total - 1]; i--) s++;
+      streakTxt = history[total - 1] + " ×" + s;
+    }
+    $("stStreak").textContent = streakTxt;
+
+    /* Dự đoán */
+    const a = analyze(history);
+    const pv = $("predValue");
+    const pr = $("predReason");
+
+    if (!a.pred) {
+      pv.textContent = "—";
+      pv.className = "pred-value";
+      pr.textContent = a.desc;
+    } else {
+      pv.textContent = a.pred === "T" ? "TÀI" : "XỈU";
+      pv.className = "pred-value " + (a.pred === "T" ? "tai" : "xiu");
+      pr.textContent = a.desc + " · độ tin cậy ~" + a.conf + "%";
+    }
+  }
+
+  /* ====== 6. HÀNH ĐỘNG ====== */
+  function addResult(r) {
+    history.push(r);
+    if (history.length > 500) history = history.slice(-500);
+    save();
+    render();
+  }
+
+  document.querySelectorAll(".btn[data-r]").forEach((btn) => {
+    btn.addEventListener("click", () => addResult(btn.dataset.r));
+  });
+
+  $("undoBtn").addEventListener("click", () => {
+    if (!history.length) return;
+    history.pop();
+    save();
+    render();
+  });
+
+  $("clearBtn").addEventListener("click", () => {
+    if (!history.length) return;
+    if (confirm("Xóa toàn bộ lịch sử?")) {
+      history = [];
+      save();
+      render();
+    }
+  });
+})();
+</script>
+</body>
+</html>
